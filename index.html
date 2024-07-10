@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Notes App</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #app-container {
+            width: 360px;
+            height: 640px;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+        }
+        #status-bar {
+            height: 24px;
+            background-color: #333;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+        #content {
+            height: calc(100% - 24px);
+            position: relative;
+            overflow: hidden;
+        }
+        #soapImage {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+        }
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(100, 149, 237, 0.7) 70%, rgba(100, 149, 237, 0.5));
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.5), 0 0 10px rgba(100, 149, 237, 0.5);
+            border: 2px solid rgba(100, 149, 237, 0.8);
+            cursor: pointer;
+        }
+        .note {
+            position: absolute;
+            width: 80%;
+            height: 60%;
+            background-image: url('https://img.freepik.com/free-photo/crumpled-yellow-paper-background-close-up_60487-2390.jpg');
+            background-size: cover;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: none;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .note textarea {
+            width: 100%;
+            height: 80%;
+            border: none;
+            background: transparent;
+            resize: none;
+            font-size: 16px;
+        }
+        .note button {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .fixed-circle {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: move;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            user-select: none;
+              overflow: hidden;
+        }
+        .timer-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.7);
+    width: 0;
+}
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+<div id="app-container">
+    <div id="status-bar">
+        <span>12:00</span>
+        <span>📶 📶 🔋</span>
+    </div>
+    <div id="content">
+        <img id="soapImage" src="Soap_Bubble.jpg" alt="Soap Bubble Container">
+    </div>
+</div>
+
+
+<script>
+    const content = document.getElementById('content');
+    const soapImage = document.getElementById('soapImage');
+
+    soapImage.addEventListener('click', createBubble);
+
+    function createBubble(event) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+
+        const size = Math.random() * 30 + 20;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+
+        const rect = content.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        bubble.style.left = `${x}px`;
+        bubble.style.top = `${y}px`;
+
+        bubble.addEventListener('click', createNote);
+
+        content.appendChild(bubble);
+
+        moveBubble(bubble);
+    }
+    function playSound(frequency, duration, type = 'sine') {
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const oscillator = audioContext.createOscillator();
+const gainNode = audioContext.createGain();
+
+oscillator.type = type;
+oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+oscillator.connect(gainNode);
+gainNode.connect(audioContext.destination);
+
+gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.01);
+gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+
+oscillator.start(audioContext.currentTime);
+oscillator.stop(audioContext.currentTime + duration);
+}
+
+    function moveBubble(bubble) {
+        let x = parseFloat(bubble.style.left);
+        let y = parseFloat(bubble.style.top);
+        let dx = (Math.random() - 0.5) * 1; // Reduced speed
+        let dy = (Math.random() - 0.5) * 1; // Reduced speed
+
+        function animate() {
+            if (!bubble.isConnected) return;
+
+            x += dx;
+            y += dy;
+
+            dx += (Math.random() - 0.5) * 0.2; // Reduced random change
+            dy += (Math.random() - 0.5) * 0.2; // Reduced random change
+
+            const speed = Math.sqrt(dx * dx + dy * dy);
+            dx = dx / speed * 0.5; // Further reduced speed
+            dy = dy / speed * 0.5; // Further reduced speed
+
+            if (x < 0 || x > content.clientWidth - bubble.clientWidth) dx = -dx;
+            if (y < 0 || y > content.clientHeight - bubble.clientHeight) dy = -dy;
+
+            bubble.style.left = `${x}px`;
+            bubble.style.top = `${y}px`;
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    }
+
+function createNote(event) {
+const bubble = event.target;
+bubble.style.display = 'none';
+
+const note = document.createElement('div');
+note.className = 'note';
+
+const textarea = document.createElement('textarea');
+note.appendChild(textarea);
+
+const timeInput = document.createElement('input');
+timeInput.type = 'number';
+timeInput.min = '1';
+timeInput.max = '1440'; // 24 hours in minutes
+timeInput.value = '60'; // Default to 1 hour
+timeInput.style.width = '50px';
+note.appendChild(timeInput);
+
+const timeLabel = document.createElement('label');
+timeLabel.textContent = ' minutes';
+note.appendChild(timeLabel);
+
+const closeButton = document.createElement('button');
+closeButton.textContent = 'Save';
+closeButton.addEventListener('click', () => closeNote(note, textarea.value, parseInt(timeInput.value)));
+note.appendChild(closeButton);
+
+content.appendChild(note);
+note.style.display = 'block';
+textarea.focus();
+}
+
+  function closeNote(note, text, duration) {
+    note.remove();
+    createFixedCircle(text, duration);
+}
+
+function createFixedCircle(text, duration) {
+const circle = document.createElement('div');
+circle.className = 'fixed-circle';
+circle.style.left = `${Math.random() * (content.clientWidth - 40)}px`;
+circle.style.top = `${Math.random() * (content.clientHeight - 40)}px`;
+
+const randomColor = Math.floor(Math.random()*16777215).toString(16);
+circle.style.backgroundColor = "#" + randomColor;
+
+circle.textContent = text.charAt(0).toUpperCase();
+
+const timerBar = document.createElement('div');
+timerBar.className = 'timer-bar';
+circle.appendChild(timerBar);
+
+makeDraggable(circle, text);
+content.appendChild(circle);
+
+playSound(880, 0.1);
+
+startTimer(circle, duration);
+}
+
+function startTimer(circle, duration) {
+const startTime = Date.now();
+const endTime = startTime + duration * 60000; // Convert minutes to milliseconds
+
+function updateTimer() {
+    const now = Date.now();
+    const timeLeft = Math.max(0, endTime - now);
+    const progress = 1 - (timeLeft / (duration * 60000));
+
+    circle.querySelector('.timer-bar').style.width = `${progress * 100}%`;
+
+    if (timeLeft > 0) {
+        requestAnimationFrame(updateTimer);
+    } else {
+        deleteCircle(circle);
+    }
+}
+
+updateTimer();
+}
+
+    function makeDraggable(element, text) {
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+        let dragStartTime;
+
+        element.addEventListener("mousedown", dragStart);
+        document.addEventListener("mouseup", dragEnd);
+        document.addEventListener("mousemove", drag);
+
+    element.addEventListener("dblclick", function() {
+        const currentWidth = element.querySelector('.timer-bar').style.width;
+        const currentProgress = parseFloat(currentWidth) / 100;
+        const newDuration = duration * (1 - currentProgress) / 2; // Reduce remaining time by half
+        startTimer(element, newDuration);
+    });
+
+        function dragStart(e) {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+
+            if (e.target === element) {
+                isDragging = true;
+                dragStartTime = new Date().getTime();
+            }
+        }
+
+        function dragEnd(e) {
+            if (isDragging) {
+                const dragEndTime = new Date().getTime();
+                const dragDuration = dragEndTime - dragStartTime;
+
+                if (dragDuration < 200) {  // If the drag was less than 200ms, consider it a click
+                    openSavedNote(text);
+                } else {
+                    // Check if the circle is over the soap image
+                    const soapRect = soapImage.getBoundingClientRect();
+                    const circleRect = element.getBoundingClientRect();
+
+                    if (
+                        circleRect.left < soapRect.right &&
+                        circleRect.right > soapRect.left &&
+                        circleRect.top < soapRect.bottom &&
+                        circleRect.bottom > soapRect.top
+                    ) {
+                        deleteCircle(element);
+                    }
+                }
+            }
+
+            isDragging = false;
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, element);
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+        }
+    }
+
+function deleteCircle(element) {
+element.style.animation = 'explode 0.5s forwards';
+playSound(220, 0.1, 'square'); // Play A3 note for 0.1 seconds with a square wave
+setTimeout(() => {
+    element.remove();
+}, 500);
+}
+
+    function openSavedNote(text) {
+        const note = document.createElement('div');
+        note.className = 'note';
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.readOnly = true;
+        note.appendChild(textarea);
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Close';
+        closeButton.addEventListener('click', () => note.remove());
+        note.appendChild(closeButton);
+
+        content.appendChild(note);
+        note.style.display = 'block';
+    }
+</script>
+</body>
+</html>
